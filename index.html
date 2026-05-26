@@ -4,6 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Box Tracker — Moving Helper</title>
+
+  <!-- PWA / app install settings -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#c05c2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="BoxTracker">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
@@ -42,7 +51,7 @@
       <div class="card">
         <h2>Add a new box</h2>
         <input type="text" id="box-name-input" placeholder="Box name, e.g. Kitchen Stuff"/>
-        <input type="text" id="box-color-input" placeholder="Color label (optional)"/>
+        <input type="text" id="box-color-input" placeholder="Color label, e.g. red or #c05c2e (optional)"/>
         <button onclick="addBox()" class="btn-primary full-width">+ Add Box</button>
       </div>
 
@@ -51,7 +60,7 @@
         <h2>Voice input</h2>
         <p class="muted">Say: <em>"Create box 1"</em>, <em>"Add scissors to Box 1"</em>, or <em>"Find scissors"</em></p>
         <button id="voice-btn" onclick="toggleVoice()" class="btn-voice">
-          <span class="mic-icon">🎤</span> Hold to Speak
+          <span class="mic-icon">🎤</span> Tap to Speak
         </button>
         <div id="voice-status" class="voice-status"></div>
         <div id="voice-transcript" class="voice-transcript"></div>

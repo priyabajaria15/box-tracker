@@ -1,134 +1,93 @@
-# 📦 BoxTracker — Moving Helper App
+# 📦 BoxTracker — PWA Version
 
-Track which items are in which moving box.
-Supports typed input AND free browser voice commands.
-Data is saved to a real file on your computer (data.json).
-No Gemini/OpenAI/paid API key is required.
+BoxTracker helps you track which items are stored in which moving box.
 
----
+This version is ready for GitHub Pages and can be installed on a phone as a Progressive Web App (PWA).
 
-## 📁 Folder Structure
+## Files
 
-```
+```text
 box-tracker/
-│
-├── index.html   ← The webpage
-├── style.css    ← All the design/colours
-├── app.js       ← Frontend logic (talks to Python server)
-├── server.py    ← Python backend (saves data to file)
-├── data.json    ← Created automatically when you first run
-└── README.md    ← This file
+├── index.html
+├── style.css
+├── app.js
+├── manifest.json
+├── service-worker.js
+└── icons/
+    ├── icon-192.png
+    └── icon-512.png
 ```
 
----
+You do not need `server.py` or `data.json` for the public app version.
 
-## 🚀 How to Run (step by step)
+## How data is saved
 
-### Step 1 — Put all files in one folder
-Create a folder called `box-tracker` and put these files inside:
-- index.html
-- style.css
-- app.js
-- server.py
+Data is saved in each user's own browser using `localStorage`.
 
-### Step 2 — Open Terminal / Command Prompt
-- **Mac**: Press Cmd+Space, type "Terminal", press Enter
-- **Windows**: Press Win+R, type "cmd", press Enter
+That means:
 
-### Step 3 — Go into your folder
+- No backend is needed.
+- No database is needed.
+- No API key is needed.
+- Each user's boxes stay on their own device/browser.
+
+## Voice commands
+
+Voice works best on Google Chrome.
+
+Examples:
+
+| Say this | What happens |
+|---|---|
+| `Create box 1` | Creates a box named Box 1 |
+| `Create box number two` | Creates a box named Box 2 |
+| `New box Bathroom` | Creates a box named Bathroom |
+| `Add scissors to Box 1` | Adds scissors to Box 1 |
+| `Add bottles to box number two` | Adds bottles to Box 2 |
+| `Add tape and glue to Box 1` | Adds multiple items |
+| `Find scissors` | Searches for scissors |
+
+## Run locally
+
+Because this is a PWA, test it using a small local server instead of opening the HTML file directly.
+
 ```bash
-cd path/to/box-tracker
-
-# Example on Mac:
-cd ~/Downloads/box-tracker
-
-# Example on Windows:
-cd C:\Users\YourName\Downloads\box-tracker
+python3 -m http.server 8080
 ```
 
-### Step 4 — Start the server
-```bash
-python3 server.py
-```
-You should see:
-```
-📦 BoxTracker server starting...
-   Open this in Chrome: http://localhost:8080
-   Data is saved to: /path/to/box-tracker/data.json
+Then open:
+
+```text
+http://localhost:8080
 ```
 
-### Step 5 — Open in Chrome
-Go to: **http://localhost:8080**
+## Deploy on GitHub Pages
 
-> ⚠️ Must use Chrome for voice to work.
-> Keep the terminal open while using the app.
-> Press Ctrl+C in terminal to stop the server.
+1. Push these files to your GitHub repo.
+2. Go to your repo on GitHub.
+3. Open **Settings**.
+4. Click **Pages**.
+5. Source: **Deploy from a branch**.
+6. Branch: **main**.
+7. Folder: **/root**.
+8. Save.
 
----
+Your app link will look like:
 
-## 💾 Where is data saved?
-
-All data is saved in **data.json** in the same folder.
-It looks like this:
-
-```json
-{
-  "boxes": [
-    {
-      "name": "Kitchen Stuff",
-      "color": "#c05c2e",
-      "items": ["scissors", "knife", "ladle"]
-    },
-    {
-      "name": "Bedroom",
-      "color": "#2d6a4f",
-      "items": ["remote", "lamp", "charger"]
-    }
-  ]
-}
+```text
+https://YOUR-USERNAME.github.io/YOUR-REPO-NAME/
 ```
 
-- Data is permanent — survives browser clear, restarts, etc.
-- Back it up by just copying data.json somewhere safe.
+## Install on phone
 
----
+### iPhone
 
-## 🎙️ Voice Commands (Chrome only)
+Open the link in Safari, tap Share, then tap **Add to Home Screen**.
 
-| Say this                          | What happens                         |
-|-----------------------------------|--------------------------------------|
-| "Create box 1"                  | Creates a box named Box 1            |
-| "New box Bathroom"                | Creates a box named Bathroom         |
-| "Add scissors to Box 1"           | Adds scissors to Box 1               |
-| "Add tape and glue to Box 1"      | Adds multiple items to Box 1         |
-| "Where is scissors"               | Finds which box has scissors         |
-| "What box has remote"             | Finds which box has the remote       |
-| "Find charger"                    | Searches for charger                 |
+### Android
 
----
+Open the link in Chrome, tap the three dots, then tap **Install app** or **Add to Home screen**.
 
-## 🌐 Access from phone (same WiFi)
+## Important note
 
-1. Find your laptop's IP address:
-   - Mac: System Preferences → Network → your IP (e.g. 192.168.1.5)
-   - Windows: Run `ipconfig` in cmd, look for IPv4 Address
-
-2. On your phone's Chrome, go to: `http://192.168.1.5:8080`
-   (replace with your actual IP)
-
-> Voice may not work on phone — but searching and adding items manually will work fine.
-
----
-
-## ❓ Troubleshooting
-
-**"python3: command not found"**
-→ Try `python server.py` instead (without the 3)
-
-**App shows blank / can't connect**
-→ Make sure terminal is still open and server is running
-→ Make sure you're on http://localhost:8080 not file://
-
-**Voice button does nothing**
-→ Must use Google Chrome
-→ Click "Allow" when Chrome asks for microphone permission
+Voice recognition support depends on the browser. Typed adding and searching will still work even if voice is unavailable.

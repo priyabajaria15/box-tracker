@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Box Tracker — Moving Helper</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <span class="logo-icon">📦</span>
+      <div>
+        <h1>BoxTracker</h1>
+        <p>Know exactly where everything is</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span id="total-boxes">0</span><label>Boxes</label></div>
+      <div class="stat"><span id="total-items">0</span><label>Items</label></div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- LEFT: Add Box + Search -->
+    <aside class="sidebar">
+
+      <!-- Search -->
+      <div class="card search-card">
+        <h2>Find an item</h2>
+        <div class="input-row">
+          <input type="text" id="search-input" placeholder="e.g. scissors, remote..."/>
+          <button onclick="searchItem()" class="btn-primary">Search</button>
+        </div>
+        <div id="search-result"></div>
+      </div>
+
+      <!-- Add Box -->
+      <div class="card">
+        <h2>Add a new box</h2>
+        <input type="text" id="box-name-input" placeholder="Box name, e.g. Kitchen Stuff"/>
+        <input type="text" id="box-color-input" placeholder="Color label (optional)"/>
+        <button onclick="addBox()" class="btn-primary full-width">+ Add Box</button>
+      </div>
+
+      <!-- Voice Input -->
+      <div class="card voice-card">
+        <h2>Voice input</h2>
+        <p class="muted">Say: <em>"Create box 1"</em>, <em>"Add scissors to Box 1"</em>, or <em>"Find scissors"</em></p>
+        <button id="voice-btn" onclick="toggleVoice()" class="btn-voice">
+          <span class="mic-icon">🎤</span> Hold to Speak
+        </button>
+        <div id="voice-status" class="voice-status"></div>
+        <div id="voice-transcript" class="voice-transcript"></div>
+      </div>
+
+    </aside>
+
+    <!-- RIGHT: Boxes Grid -->
+    <section class="boxes-section">
+      <div id="boxes-grid" class="boxes-grid">
+        <div class="empty-state" id="empty-state">
+          <span>📦</span>
+          <p>No boxes yet. Add your first box!</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

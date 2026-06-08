@@ -1,11 +1,32 @@
-// BoxTracker PWA version
-// This version is fully free: no Python server, no database, no API key.
-// Data is saved privately inside each user's browser using localStorage.
+// BoxTracker Firebase version
+// Data is saved online in Firebase Firestore.
+// Deleted items are also saved in Firestore under deletedItems.
+
+// ── Firebase setup ──
+// Replace this with your own Firebase config from Firebase Console.
+const firebaseConfig = {
+ apiKey: "AIzaSyD2iUh608ux0IIBTnic9EanY9T35ZKAF4Q",
+ authDomain: "box-tracker-fa529.firebaseapp.com",
+ projectId: "box-tracker-fa529",
+ storageBucket: "box-tracker-fa529.firebasestorage.app",
+ messagingSenderId: "401584509548",
+ appId: "1:401584509548:web:debb47ebac0d5e3f5f7e49",
+ measurementId: "G-D2N0XW132P"
+};
+
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
+
+// Firestore location:
+// Collection: boxTracker
+// Document: mainData
+const DATA_DOC = db.collection("boxTracker").doc("mainData");
 
 // ── State ──
-const STORAGE_KEY = "boxTrackerData";
-
 let boxes = [];
+let deletedItems = [];
 
 const COLORS = [
   "#c05c2e",
@@ -19,23 +40,43 @@ const COLORS = [
 
 let colorIndex = 0;
 
-// ── Storage helpers ──
-function loadData() {
+// ── Firebase storage helpers ──
+async function loadData() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const data = saved ? JSON.parse(saved) : { boxes: [] };
-    boxes = Array.isArray(data.boxes) ? data.boxes : [];
+    const doc = await DATA_DOC.get();
+
+    if (doc.exists) {
+      const data = doc.data();
+
+      boxes = Array.isArray(data.boxes) ? data.boxes : [];
+      deletedItems = Array.isArray(data.deletedItems) ? data.deletedItems : [];
+    } else {
+      boxes = [];
+      deletedItems = [];
+      await saveData();
+    }
   } catch (error) {
-    console.error("Could not load saved data:", error);
+    console.error("Could not load data from Firebase:", error);
+    alert("Could not load data from Firebase. Check your Firebase setup.");
     boxes = [];
+    deletedItems = [];
   }
 
   colorIndex = boxes.length;
   render();
 }
 
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ boxes }));
+async function saveData() {
+  try {
+    await DATA_DOC.set({
+      boxes: boxes,
+      deletedItems: deletedItems,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Could not save data to Firebase:", error);
+    alert("Could not save data to Firebase. Check your internet, Firebase config, and Firestore rules.");
+  }
 }
 
 // ── Render ──
@@ -158,19 +199,33 @@ function addBox() {
   colorIndex++;
 
   boxes.push({ name, color, items: [] });
+
   saveData();
+  render();
 
   nameInp.value = "";
   colorInp.value = "";
-
-  render();
 }
 
 function deleteBox(bi) {
   if (!boxes[bi]) return;
+
   if (!confirm("Delete \"" + boxes[bi].name + "\" and all its items?")) return;
 
+  // Save deleted box items into deletedItems before deleting the box
+  const boxBeingDeleted = boxes[bi];
+
+  boxBeingDeleted.items.forEach(item => {
+    deletedItems.push({
+      item: item,
+      boxName: boxBeingDeleted.name,
+      deletedAt: new Date().toISOString(),
+      deleteType: "box_deleted"
+    });
+  });
+
   boxes.splice(bi, 1);
+
   saveData();
   render();
 }
@@ -187,17 +242,29 @@ function addItemToBox(bi, value, input) {
   }
 
   boxes[bi].items.push(item);
+
   saveData();
+  render();
 
   if (input) input.value = "";
-
-  render();
 }
 
 function removeItem(bi, ii) {
   if (!boxes[bi] || !boxes[bi].items[ii]) return;
 
+  const deletedItem = {
+    item: boxes[bi].items[ii],
+    boxName: boxes[bi].name,
+    deletedAt: new Date().toISOString(),
+    deleteType: "item_deleted"
+  };
+
+  // Keep record of deleted item in Firebase
+  deletedItems.push(deletedItem);
+
+  // Remove item from active box
   boxes[bi].items.splice(ii, 1);
+
   saveData();
   render();
 }
@@ -328,7 +395,7 @@ function toggleVoice() {
   }
 }
 
-// ── Free voice command processor ──
+// ── Voice command processor ──
 function processVoiceCommand(cmd) {
   const status = document.getElementById("voice-status");
   const command = normalizeSpeech(cmd);
@@ -513,12 +580,12 @@ function extractSearchQuery(command) {
 function findBoxIndex(query) {
   const q = normalizeBoxName(query);
 
-  // 1. Exact match: "box 2" matches "Box 2"
+  // Exact match: "box 2" matches "Box 2"
   let idx = boxes.findIndex(box => normalizeBoxName(box.name) === q);
 
   if (idx !== -1) return idx;
 
-  // 2. Fuzzy match: "kitchen" matches "Kitchen Stuff"
+  // Fuzzy match: "kitchen" matches "Kitchen Stuff"
   idx = boxes.findIndex(box => {
     const name = normalizeBoxName(box.name);
     return name.includes(q) || q.includes(name);
@@ -526,7 +593,7 @@ function findBoxIndex(query) {
 
   if (idx !== -1) return idx;
 
-  // 3. Number fallback: "box 2", "box number 2", "number 2" means second displayed box
+  // Number fallback: "box 2" means second displayed box
   const numberMatch = q.match(/^(?:box|boxnumber|number)?(\d+)$/);
 
   if (numberMatch) {

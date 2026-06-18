@@ -1,19 +1,17 @@
-// BoxTracker Firebase version
+// BoxTracker Firebase live-sync version
 // Data is saved online in Firebase Firestore.
-// Deleted items are also saved in Firestore under deletedItems.
+// Changes made on one phone will update on other phones using onSnapshot.
 
 // ── Firebase setup ──
-// Replace this with your own Firebase config from Firebase Console.
 const firebaseConfig = {
- apiKey: "AIzaSyD2iUh608ux0IIBTnic9EanY9T35ZKAF4Q",
- authDomain: "box-tracker-fa529.firebaseapp.com",
- projectId: "box-tracker-fa529",
- storageBucket: "box-tracker-fa529.firebasestorage.app",
- messagingSenderId: "401584509548",
- appId: "1:401584509548:web:debb47ebac0d5e3f5f7e49",
- measurementId: "G-D2N0XW132P"
+  apiKey: "AIzaSyD2iUh608ux0IIBTnic9EanY9T35ZKAF4Q",
+  authDomain: "box-tracker-fa529.firebaseapp.com",
+  projectId: "box-tracker-fa529",
+  storageBucket: "box-tracker-fa529.firebasestorage.app",
+  messagingSenderId: "401584509548",
+  appId: "1:401584509548:web:debb47ebac0d5e3f5f7e49",
+  measurementId: "G-D2N0XW132P"
 };
-
 
 firebase.initializeApp(firebaseConfig);
 
@@ -40,32 +38,34 @@ const COLORS = [
 
 let colorIndex = 0;
 
-// ── Firebase storage helpers ──
-async function loadData() {
-  try {
-    const doc = await DATA_DOC.get();
+// ── Firebase live listener ──
+function startLiveSync() {
+  DATA_DOC.onSnapshot(
+    async snapshot => {
+      if (snapshot.exists) {
+        const data = snapshot.data();
 
-    if (doc.exists) {
-      const data = doc.data();
+        boxes = Array.isArray(data.boxes) ? data.boxes : [];
+        deletedItems = Array.isArray(data.deletedItems) ? data.deletedItems : [];
 
-      boxes = Array.isArray(data.boxes) ? data.boxes : [];
-      deletedItems = Array.isArray(data.deletedItems) ? data.deletedItems : [];
-    } else {
-      boxes = [];
-      deletedItems = [];
-      await saveData();
+        colorIndex = boxes.length;
+        render();
+      } else {
+        // First time app is opened: create empty Firebase document
+        boxes = [];
+        deletedItems = [];
+        await saveData();
+        render();
+      }
+    },
+    error => {
+      console.error("Firebase live sync error:", error);
+      alert("Could not connect to Firebase. Check your internet, Firebase config, and Firestore rules.");
     }
-  } catch (error) {
-    console.error("Could not load data from Firebase:", error);
-    alert("Could not load data from Firebase. Check your Firebase setup.");
-    boxes = [];
-    deletedItems = [];
-  }
-
-  colorIndex = boxes.length;
-  render();
+  );
 }
 
+// ── Firebase save helper ──
 async function saveData() {
   try {
     await DATA_DOC.set({
@@ -98,6 +98,10 @@ function render() {
   let totalItems = 0;
 
   boxes.forEach((box, bi) => {
+    if (!Array.isArray(box.items)) {
+      box.items = [];
+    }
+
     totalItems += box.items.length;
     grid.appendChild(buildBoxCard(box, bi));
   });
@@ -198,10 +202,13 @@ function addBox() {
   const color = typedColor || COLORS[colorIndex % COLORS.length];
   colorIndex++;
 
-  boxes.push({ name, color, items: [] });
+  boxes.push({
+    name: name,
+    color: color,
+    items: []
+  });
 
   saveData();
-  render();
 
   nameInp.value = "";
   colorInp.value = "";
@@ -212,26 +219,30 @@ function deleteBox(bi) {
 
   if (!confirm("Delete \"" + boxes[bi].name + "\" and all its items?")) return;
 
-  // Save deleted box items into deletedItems before deleting the box
   const boxBeingDeleted = boxes[bi];
 
-  boxBeingDeleted.items.forEach(item => {
-    deletedItems.push({
-      item: item,
-      boxName: boxBeingDeleted.name,
-      deletedAt: new Date().toISOString(),
-      deleteType: "box_deleted"
+  if (Array.isArray(boxBeingDeleted.items)) {
+    boxBeingDeleted.items.forEach(item => {
+      deletedItems.push({
+        item: item,
+        boxName: boxBeingDeleted.name,
+        deletedAt: new Date().toISOString(),
+        deleteType: "box_deleted"
+      });
     });
-  });
+  }
 
   boxes.splice(bi, 1);
 
   saveData();
-  render();
 }
 
 function addItemToBox(bi, value, input) {
   if (!boxes[bi]) return;
+
+  if (!Array.isArray(boxes[bi].items)) {
+    boxes[bi].items = [];
+  }
 
   const item = value.trim().toLowerCase();
   if (!item) return;
@@ -244,13 +255,12 @@ function addItemToBox(bi, value, input) {
   boxes[bi].items.push(item);
 
   saveData();
-  render();
 
   if (input) input.value = "";
 }
 
 function removeItem(bi, ii) {
-  if (!boxes[bi] || !boxes[bi].items[ii]) return;
+  if (!boxes[bi] || !boxes[bi].items || !boxes[bi].items[ii]) return;
 
   const deletedItem = {
     item: boxes[bi].items[ii],
@@ -259,14 +269,10 @@ function removeItem(bi, ii) {
     deleteType: "item_deleted"
   };
 
-  // Keep record of deleted item in Firebase
   deletedItems.push(deletedItem);
-
-  // Remove item from active box
   boxes[bi].items.splice(ii, 1);
 
   saveData();
-  render();
 }
 
 // ── Search ──
@@ -286,9 +292,15 @@ function searchItem() {
   const found = [];
 
   boxes.forEach((box, bi) => {
+    if (!Array.isArray(box.items)) return;
+
     box.items.forEach(item => {
       if (item.toLowerCase().includes(query)) {
-        found.push({ boxIndex: bi, boxName: box.name, item });
+        found.push({
+          boxIndex: bi,
+          boxName: box.name,
+          item: item
+        });
       }
     });
   });
@@ -310,7 +322,10 @@ function searchItem() {
 
       if (card) {
         card.classList.add("highlight");
-        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
       }
     });
   }
@@ -402,8 +417,6 @@ function processVoiceCommand(cmd) {
 
   status.textContent = "Heard: " + command;
 
-  // Create box:
-  // "create box 1", "create box number two", "new box bathroom"
   const createMatch = command.match(/^(create|new|make|add)\s+(a\s+)?(new\s+)?box\s+(.+)$/i);
 
   if (createMatch) {
@@ -423,8 +436,6 @@ function processVoiceCommand(cmd) {
     return;
   }
 
-  // Add item:
-  // "add scissors to box 1", "add bottles to box number two"
   const addMatch = command.match(/^(add|put|place)\s+(.+?)\s+(to|in|into)\s+(.+)$/i);
 
   if (addMatch) {
@@ -455,7 +466,6 @@ function processVoiceCommand(cmd) {
     }
 
     saveData();
-    render();
 
     if (added.length > 0) {
       status.textContent = "✓ Added " + added.join(", ") + " to \"" + boxes[bi].name + "\"";
@@ -466,8 +476,6 @@ function processVoiceCommand(cmd) {
     return;
   }
 
-  // Search:
-  // "find scissors", "where is scissors", "what box has remote"
   const searchQuery = extractSearchQuery(command);
 
   if (searchQuery) {
@@ -580,12 +588,10 @@ function extractSearchQuery(command) {
 function findBoxIndex(query) {
   const q = normalizeBoxName(query);
 
-  // Exact match: "box 2" matches "Box 2"
   let idx = boxes.findIndex(box => normalizeBoxName(box.name) === q);
 
   if (idx !== -1) return idx;
 
-  // Fuzzy match: "kitchen" matches "Kitchen Stuff"
   idx = boxes.findIndex(box => {
     const name = normalizeBoxName(box.name);
     return name.includes(q) || q.includes(name);
@@ -593,7 +599,6 @@ function findBoxIndex(query) {
 
   if (idx !== -1) return idx;
 
-  // Number fallback: "box 2" means second displayed box
   const numberMatch = q.match(/^(?:box|boxnumber|number)?(\d+)$/);
 
   if (numberMatch) {
@@ -629,5 +634,5 @@ if ("serviceWorker" in navigator) {
 }
 
 // ── Init ──
-loadData();
+startLiveSync();
 setupVoice();

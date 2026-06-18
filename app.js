@@ -275,6 +275,137 @@ function removeItem(bi, ii) {
   saveData();
 }
 
+// ── Import existing list ──
+function importList() {
+  const textarea = document.getElementById("import-textarea");
+  const rawText = textarea.value.trim();
+
+  if (!rawText) {
+    alert("Paste your list first.");
+    return;
+  }
+
+  const importedBoxes = parseImportedList(rawText);
+
+  if (importedBoxes.length === 0) {
+    alert("I could not find any boxes. Make sure your list has headings like Box 1, Yellow Box 1, White Box 2, Bag 27.");
+    return;
+  }
+
+  const shouldReplace = confirm(
+    "I found " +
+      importedBoxes.length +
+      " boxes.\n\nClick OK to REPLACE the current list.\nClick Cancel to ADD these boxes to the current list."
+  );
+
+  if (shouldReplace) {
+    boxes = importedBoxes;
+  } else {
+    boxes = boxes.concat(importedBoxes);
+  }
+
+  colorIndex = boxes.length;
+
+  saveData();
+
+  textarea.value = "";
+
+  alert("Imported " + importedBoxes.length + " boxes successfully!");
+}
+
+function clearImportBox() {
+  document.getElementById("import-textarea").value = "";
+}
+
+function parseImportedList(text) {
+  const lines = text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+  const importedBoxes = [];
+  let currentBox = null;
+
+  lines.forEach(line => {
+    const cleanLine = line.replace(/:$/, "").trim();
+
+    if (isListTitle(cleanLine)) {
+      return;
+    }
+
+    if (isBoxHeading(cleanLine)) {
+      currentBox = {
+        name: formatImportedBoxName(cleanLine),
+        color: COLORS[importedBoxes.length % COLORS.length],
+        items: []
+      };
+
+      importedBoxes.push(currentBox);
+      return;
+    }
+
+    if (!currentBox) {
+      currentBox = {
+        name: "Unlabeled Items",
+        color: COLORS[importedBoxes.length % COLORS.length],
+        items: []
+      };
+
+      importedBoxes.push(currentBox);
+    }
+
+    const itemsFromLine = splitImportedItems(cleanLine);
+
+    itemsFromLine.forEach(item => {
+      if (item && !currentBox.items.includes(item)) {
+        currentBox.items.push(item);
+      }
+    });
+  });
+
+  return importedBoxes.filter(box => box.items.length > 0);
+}
+
+function isListTitle(line) {
+  const normalized = line.toLowerCase().trim();
+  return normalized === "moving";
+}
+
+function isBoxHeading(line) {
+  const normalized = line.toLowerCase().trim();
+
+  return (
+    /^box\s*\d+$/i.test(normalized) ||
+    /^yellow\s+box\s*\d+$/i.test(normalized) ||
+    /^white\s+box\s*\d+$/i.test(normalized) ||
+    /^bag\s*\d+$/i.test(normalized) ||
+    /^thelo\s*\d+$/i.test(normalized)
+  );
+}
+
+function formatImportedBoxName(line) {
+  let clean = line.replace(/:$/, "").trim();
+
+  clean = clean.replace(/\s+/g, " ");
+
+  clean = clean.replace(/^box\s*(\d+)$/i, "Box $1");
+  clean = clean.replace(/^yellow\s+box\s*(\d+)$/i, "Yellow Box $1");
+  clean = clean.replace(/^white\s+box\s*(\d+)$/i, "White Box $1");
+  clean = clean.replace(/^bag\s*(\d+)$/i, "Bag $1");
+  clean = clean.replace(/^thelo\s*(\d+)$/i, "Thelo $1");
+
+  return clean;
+}
+
+function splitImportedItems(line) {
+  return line
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+
+
 // ── Search ──
 function searchItem() {
   const query = document.getElementById("search-input").value.trim().toLowerCase();

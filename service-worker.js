@@ -1,4 +1,4 @@
-const CACHE_NAME = "boxtracker-v2";
+const CACHE_NAME = "boxtracker-v3";
 
 const FILES_TO_CACHE = [
   "./",

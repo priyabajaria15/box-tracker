@@ -48,12 +48,37 @@
       </div>
 
       <!-- Add Box -->
+      
       <div class="card">
         <h2>Add a new box</h2>
         <input type="text" id="box-name-input" placeholder="Box name, e.g. Kitchen Stuff"/>
         <input type="text" id="box-color-input" placeholder="Color label, e.g. red or #c05c2e (optional)"/>
         <button onclick="addBox()" class="btn-primary full-width">+ Add Box</button>
       </div>
+
+     
+      <!-- Import List -->
+      <div class="card">
+        <h2>Import existing list</h2>
+        <p class="muted import-help">
+          Paste your list like: Box 1, Yellow Box 1, White Box 2, Bag 27...
+        </p>
+
+        <textarea
+          id="import-textarea"
+          class="import-textarea"
+          placeholder="Paste your full moving list here..."
+        ></textarea>
+
+        <button onclick="importList()" class="btn-primary full-width">
+          Import List
+        </button>
+
+        <button onclick="clearImportBox()" class="btn-secondary full-width">
+          Clear Import Box
+        </button>
+      </div>
+
 
       <!-- Voice Input -->
       <div class="card voice-card">
